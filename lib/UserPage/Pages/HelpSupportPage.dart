@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_ecommerce_app/UserPage/NavbarComponents/UserDrawer.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HelpSupportPage extends StatefulWidget {
   const HelpSupportPage({super.key});
@@ -11,6 +13,24 @@ class HelpSupportPage extends StatefulWidget {
 }
 
 class _HelpSupportPageState extends State<HelpSupportPage> {
+  Map<String, dynamic>? _contactDetails;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchContactDetails();
+  }
+
+  Future<void> _fetchContactDetails() async {
+    final doc = await FirebaseFirestore.instance
+        .collection('settings')
+        .doc('contact_details')
+        .get();
+    setState(() {
+      _contactDetails = doc.data();
+    });
+  }
+
   final List<Map<String, dynamic>> _faqs = [
     {
       'question': 'How do I place an order?',
@@ -56,6 +76,60 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
 
   @override
   Widget build(BuildContext context) {
+    final details = _contactDetails ?? {};
+    final List<Widget> contactTiles = [];
+
+    if ((details['whatsapp'] ?? '').toString().isNotEmpty) {
+      contactTiles.add(
+        ListTile(
+          leading: const Icon(FontAwesomeIcons.whatsapp, color: Colors.green),
+          title: const Text('WhatsApp'),
+          subtitle: Text(details['whatsapp']),
+          onTap: () => _launchWhatsApp(details['whatsapp']),
+        ),
+      );
+    }
+    if ((details['instagram'] ?? '').toString().isNotEmpty) {
+      contactTiles.add(
+        ListTile(
+          leading: const Icon(FontAwesomeIcons.instagram, color: Colors.purple),
+          title: const Text('Instagram'),
+          subtitle: Text(details['instagram']),
+          onTap: () => _launchInstagram(details['instagram']),
+        ),
+      );
+    }
+    if ((details['facebook'] ?? '').toString().isNotEmpty) {
+      contactTiles.add(
+        ListTile(
+          leading: const Icon(FontAwesomeIcons.facebook, color: Colors.blue),
+          title: const Text('Facebook'),
+          subtitle: Text(details['facebook']),
+          onTap: () => _launchFacebook(details['facebook']),
+        ),
+      );
+    }
+    if ((details['email'] ?? '').toString().isNotEmpty) {
+      contactTiles.add(
+        ListTile(
+          leading: const Icon(FontAwesomeIcons.envelope, color: Colors.red),
+          title: const Text('Email'),
+          subtitle: Text(details['email']),
+          onTap: () => _launchEmail(details['email']),
+        ),
+      );
+    }
+    if ((details['phone'] ?? '').toString().isNotEmpty) {
+      contactTiles.add(
+        ListTile(
+          leading: const Icon(FontAwesomeIcons.phone, color: Colors.black),
+          title: const Text('Phone'),
+          subtitle: Text(details['phone']),
+          onTap: () => _launchPhone(details['phone']),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -71,16 +145,16 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
         ),
       ),
       drawer: UserDrawer(),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(),
-            _buildContactOptions(),
-            _buildFAQSection(),
-          ],
-        ),
-      ),
+      body: (contactTiles.isEmpty)
+          ? _buildFAQSection()
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                ...contactTiles,
+                const SizedBox(height: 24),
+                _buildFAQSection(),
+              ],
+            ),
     );
   }
 
@@ -137,6 +211,75 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
             itemBuilder: (context, index) {
               return _buildContactCard(_contactOptions[index], index);
             },
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Or reach us via social media',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.phone, color: Colors.green),
+                title: const Text('WhatsApp'),
+                subtitle: Text(_contactDetails?['whatsapp'] ?? ''),
+                onTap: () {
+                  if (_contactDetails?['whatsapp'] != null &&
+                      _contactDetails!['whatsapp'].toString().isNotEmpty) {
+                    _launchWhatsApp(_contactDetails!['whatsapp']);
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.facebook, color: Colors.blue),
+                title: const Text('Facebook'),
+                subtitle: Text(_contactDetails?['facebook'] ?? ''),
+                onTap: () {
+                  if (_contactDetails?['facebook'] != null &&
+                      _contactDetails!['facebook'].toString().isNotEmpty) {
+                    _launchFacebook(_contactDetails!['facebook']);
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Colors.purple),
+                title: const Text('Instagram'),
+                subtitle: Text(_contactDetails?['instagram'] ?? ''),
+                onTap: () {
+                  if (_contactDetails?['instagram'] != null &&
+                      _contactDetails!['instagram'].toString().isNotEmpty) {
+                    _launchInstagram(_contactDetails!['instagram']);
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.email, color: Colors.red),
+                title: const Text('Email'),
+                subtitle: Text(_contactDetails?['email'] ?? ''),
+                onTap: () {
+                  if (_contactDetails?['email'] != null &&
+                      _contactDetails!['email'].toString().isNotEmpty) {
+                    _launchEmail(_contactDetails!['email']);
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.phone, color: Colors.black),
+                title: const Text('Phone'),
+                subtitle: Text(_contactDetails?['phone'] ?? ''),
+                onTap: () {
+                  if (_contactDetails?['phone'] != null &&
+                      _contactDetails!['phone'].toString().isNotEmpty) {
+                    _launchPhone(_contactDetails!['phone']);
+                  }
+                },
+              ),
+            ],
           ),
         ],
       ),
@@ -254,5 +397,42 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
         ],
       ),
     ).animate().fadeIn(delay: (100 * index).ms).slideY(begin: 0.2);
+  }
+
+  Future<void> _launchWhatsApp(String number) async {
+    final url = Uri.parse(
+      'https://wa.me/${number.replaceAll(RegExp(r'[^0-9]'), '')}',
+    );
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _launchFacebook(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _launchInstagram(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _launchEmail(String email) async {
+    final uri = Uri(scheme: 'mailto', path: email);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
+  Future<void> _launchPhone(String phone) async {
+    final uri = Uri(scheme: 'tel', path: phone);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
   }
 }

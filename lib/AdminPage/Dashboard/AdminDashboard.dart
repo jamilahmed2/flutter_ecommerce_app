@@ -210,6 +210,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final crossAxisCount = isSmallScreen ? 2 : 4;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
           'Admin Dashboard',
@@ -411,6 +412,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
         return Card(
           elevation: 4,
+          color: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: const BorderSide(color: Colors.black, width: 1),
@@ -465,6 +467,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Widget _buildRecentActivities() {
     return Card(
+      color: Colors.white,
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),

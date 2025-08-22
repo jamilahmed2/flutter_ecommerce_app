@@ -22,7 +22,11 @@ class _BrandManagementState extends State<BrandManagement> {
 
   String? _logoUrl;
   String? _bannerUrl;
+  File? _selectedLogoFile;
+  File? _selectedBannerFile;
   bool _isLoading = false;
+  bool _isUploadingLogo = false;
+  bool _isUploadingBanner = false;
   Brand? _editingBrand;
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -36,10 +40,10 @@ class _BrandManagementState extends State<BrandManagement> {
     super.dispose();
   }
 
-  Future<void> _pickImage(bool isLogo) async {
+  Future<void> _pickImage(bool isLogo, ImageSource source, StateSetter? dialogSetState) async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(
-      source: ImageSource.gallery,
+      source: source,
       maxWidth: isLogo ? 512 : 1200,
       maxHeight: isLogo ? 512 : 800,
       imageQuality: 80,
@@ -47,34 +51,66 @@ class _BrandManagementState extends State<BrandManagement> {
 
     if (image == null) return;
 
-    setState(() => _isLoading = true);
-
-    try {
-      final url = await CloudinaryService.uploadImage(File(image.path));
-
-      setState(() {
+    final file = File(image.path);
+    
+    if (dialogSetState != null) {
+      dialogSetState(() {
         if (isLogo) {
-          _logoUrl = url;
+          _selectedLogoFile = file;
         } else {
-          _bannerUrl = url;
+          _selectedBannerFile = file;
         }
       });
+    } else {
+      setState(() {
+        if (isLogo) {
+          _selectedLogoFile = file;
+        } else {
+          _selectedBannerFile = file;
+        }
+      });
+    }
+  }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${isLogo ? 'Logo' : 'Banner'} uploaded successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+  void _removeImage(bool isLogo, StateSetter? dialogSetState) {
+    if (dialogSetState != null) {
+      dialogSetState(() {
+        if (isLogo) {
+          _selectedLogoFile = null;
+          _logoUrl = null;
+        } else {
+          _selectedBannerFile = null;
+          _bannerUrl = null;
+        }
+      });
+    } else {
+      setState(() {
+        if (isLogo) {
+          _selectedLogoFile = null;
+          _logoUrl = null;
+        } else {
+          _selectedBannerFile = null;
+          _bannerUrl = null;
+        }
+      });
+    }
+  }
+
+  Future<String?> _uploadImage(File? file, String? existingUrl) async {
+    if (file == null) return existingUrl;
+
+    try {
+      return await CloudinaryService.uploadImage(file);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to upload image: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to upload image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return null;
     }
   }
 
@@ -98,13 +134,29 @@ class _BrandManagementState extends State<BrandManagement> {
 
     try {
       final now = DateTime.now();
+      
+      // Upload images if new files are selected
+      String? uploadedLogoUrl = _logoUrl;
+      String? uploadedBannerUrl = _bannerUrl;
+
+      if (_selectedLogoFile != null) {
+        setState(() => _isUploadingLogo = true);
+        uploadedLogoUrl = await _uploadImage(_selectedLogoFile, _logoUrl);
+        setState(() => _isUploadingLogo = false);
+      }
+
+      if (_selectedBannerFile != null) {
+        setState(() => _isUploadingBanner = true);
+        uploadedBannerUrl = await _uploadImage(_selectedBannerFile, _bannerUrl);
+        setState(() => _isUploadingBanner = false);
+      }
 
       if (_editingBrand != null) {
         // Delete old images if replaced
-        if (_logoUrl != null && _editingBrand!.logoUrl != null) {
+        if (uploadedLogoUrl != _editingBrand!.logoUrl && _editingBrand!.logoUrl != null) {
           await _deleteImage(_editingBrand!.logoUrl);
         }
-        if (_bannerUrl != null && _editingBrand!.imageUrl != null) {
+        if (uploadedBannerUrl != _editingBrand!.imageUrl && _editingBrand!.imageUrl != null) {
           await _deleteImage(_editingBrand!.imageUrl);
         }
 
@@ -119,11 +171,11 @@ class _BrandManagementState extends State<BrandManagement> {
           website: _websiteController.text.trim().isEmpty
               ? null
               : _websiteController.text.trim(),
-          logoUrl: _logoUrl ?? _editingBrand!.logoUrl,
-          imageUrl: _bannerUrl ?? _editingBrand!.imageUrl,
+          logoUrl: uploadedLogoUrl,
+          imageUrl: uploadedBannerUrl,
           createdAt: _editingBrand!.createdAt,
           updatedAt: now,
-          isActive: _editingBrand!.isActive, // Preserve isActive status
+          isActive: _editingBrand!.isActive,
         );
 
         await _firestore
@@ -150,9 +202,9 @@ class _BrandManagementState extends State<BrandManagement> {
           website: _websiteController.text.trim().isEmpty
               ? null
               : _websiteController.text.trim(),
-          logoUrl: _logoUrl,
-          imageUrl: _bannerUrl,
-          isActive: true, // New brands are active by default
+          logoUrl: uploadedLogoUrl,
+          imageUrl: uploadedBannerUrl,
+          isActive: true,
           createdAt: now,
         );
 
@@ -178,7 +230,11 @@ class _BrandManagementState extends State<BrandManagement> {
         ),
       );
     } finally {
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+        _isUploadingLogo = false;
+        _isUploadingBanner = false;
+      });
     }
   }
 
@@ -205,6 +261,132 @@ class _BrandManagementState extends State<BrandManagement> {
         ),
       );
     }
+  }
+
+  Widget _buildImageUploadSection(bool isLogo, StateSetter? dialogSetState) {
+    final isUploading = isLogo ? _isUploadingLogo : _isUploadingBanner;
+    final selectedFile = isLogo ? _selectedLogoFile : _selectedBannerFile;
+    final existingUrl = isLogo ? _logoUrl : _bannerUrl;
+    final imageTitle = isLogo ? 'Logo' : 'Banner';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Text(
+            imageTitle,
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 12),
+          
+          // Image Preview
+          if (selectedFile != null || existingUrl != null)
+            Stack(
+              children: [
+                Container(
+                  width: isLogo ? 100 : 150,
+                  height: isLogo ? 100 : 80,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: selectedFile != null
+                        ? Image.file(selectedFile, fit: BoxFit.cover)
+                        : (existingUrl != null
+                            ? Image.network(existingUrl, fit: BoxFit.cover)
+                            : const Icon(Icons.image, size: 40)),
+                  ),
+                ),
+                // Remove button
+                Positioned(
+                  top: -8,
+                  right: -8,
+                  child: IconButton(
+                    onPressed: isUploading ? null : () => _removeImage(isLogo, dialogSetState),
+                    icon: Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          
+          const SizedBox(height: 12),
+          
+          // Upload buttons
+          if (selectedFile == null && existingUrl == null)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: isUploading
+                      ? null
+                      : () => _pickImage(isLogo, ImageSource.gallery, dialogSetState),
+                  icon: const Icon(Icons.photo_library),
+                  label: Text('Gallery', style: GoogleFonts.poppins()),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[200],
+                    foregroundColor: Colors.black,
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: isUploading
+                      ? null
+                      : () => _pickImage(isLogo, ImageSource.camera, dialogSetState),
+                  icon: const Icon(Icons.camera_alt),
+                  label: Text('Camera', style: GoogleFonts.poppins()),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[200],
+                    foregroundColor: Colors.black,
+                  ),
+                ),
+              ],
+            ),
+          
+          // Upload progress indicator
+          if (isUploading)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Uploading $imageTitle...',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   Widget _buildBrandCard(Brand brand) {
@@ -343,6 +525,8 @@ class _BrandManagementState extends State<BrandManagement> {
     _websiteController.clear();
     _logoUrl = null;
     _bannerUrl = null;
+    _selectedLogoFile = null;
+    _selectedBannerFile = null;
   }
 
   Future<void> _showAddBrandDialog() async {
@@ -363,7 +547,7 @@ class _BrandManagementState extends State<BrandManagement> {
     await _showBrandDialog('Edit Brand');
   }
 
-  Widget _buildBrandForm() {
+  Widget _buildBrandForm(StateSetter dialogSetState) {
     return Form(
       key: _formKey,
       child: SingleChildScrollView(
@@ -372,29 +556,46 @@ class _BrandManagementState extends State<BrandManagement> {
           children: [
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Brand Name *',
-                border: OutlineInputBorder(),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                prefixIcon: const Icon(Icons.branding_watermark),
               ),
-              validator: (value) =>
-                  value?.isEmpty ?? true ? 'Please enter brand name' : null,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter brand name';
+                }
+                if (value.length < 2) {
+                  return 'Brand name must be at least 2 characters';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: 'Description (Optional)',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                prefixIcon: const Icon(Icons.description),
               ),
               maxLines: 3,
+              maxLength: 200,
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _websiteController,
-              decoration: const InputDecoration(
-                labelText: 'Website',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: 'Website (Optional)',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 hintText: 'https://example.com',
+                prefixIcon: const Icon(Icons.web),
               ),
               keyboardType: TextInputType.url,
               validator: (value) {
@@ -408,93 +609,13 @@ class _BrandManagementState extends State<BrandManagement> {
               },
             ),
             const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    children: [
-                      ElevatedButton(
-                        onPressed: _isLoading ? null : () => _pickImage(true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[200],
-                          foregroundColor: Colors.black,
-                          minimumSize: const Size(double.infinity, 45),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.upload),
-                            SizedBox(width: 8),
-                            Text('Logo'),
-                          ],
-                        ),
-                      ),
-                      if (_logoUrl != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey[300]!),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                _logoUrl!,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    children: [
-                      ElevatedButton(
-                        onPressed: _isLoading ? null : () => _pickImage(false),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[200],
-                          foregroundColor: Colors.black,
-                          minimumSize: const Size(double.infinity, 45),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.upload),
-                            SizedBox(width: 8),
-                            Text('Banner'),
-                          ],
-                        ),
-                      ),
-                      if (_bannerUrl != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Container(
-                            width: 80,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey[300]!),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                _bannerUrl!,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            
+            // Logo Upload Section
+            _buildImageUploadSection(true, dialogSetState),
+            const SizedBox(height: 16),
+            
+            // Banner Upload Section
+            _buildImageUploadSection(false, dialogSetState),
           ],
         ),
       ),
@@ -505,44 +626,46 @@ class _BrandManagementState extends State<BrandManagement> {
     await showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text(
-          title,
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-        ),
-        content: SizedBox(
-          width: MediaQuery.of(context).size.width * 0.8,
-          child: _buildBrandForm(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.poppins(color: Colors.grey[600]),
-            ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, dialogSetState) => AlertDialog(
+          title: Text(
+            title,
+            style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
           ),
-          ElevatedButton(
-            onPressed: _isLoading ? null : _saveBrand,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
+          content: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.8,
+            child: _buildBrandForm(dialogSetState),
+          ),
+          actions: [
+            TextButton(
+              onPressed: _isLoading ? null : () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.poppins(color: Colors.grey[600]),
+              ),
             ),
-            child: _isLoading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ElevatedButton(
+              onPressed: (_isLoading || _isUploadingLogo || _isUploadingBanner) ? null : _saveBrand,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+              ),
+              child: (_isLoading || _isUploadingLogo || _isUploadingBanner)
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : Text(
+                      _editingBrand != null ? 'Update' : 'Add',
+                      style: GoogleFonts.poppins(),
                     ),
-                  )
-                : Text(
-                    _editingBrand != null ? 'Update' : 'Add',
-                    style: GoogleFonts.poppins(),
-                  ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -584,6 +707,7 @@ class _BrandManagementState extends State<BrandManagement> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
           'Brand Management',

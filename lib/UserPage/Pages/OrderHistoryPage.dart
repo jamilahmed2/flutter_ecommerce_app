@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_ecommerce_app/UserPage/NavbarComponents/UserDrawer.dart';
 
 class OrderHistoryPage extends StatelessWidget {
   const OrderHistoryPage({super.key});
@@ -19,6 +20,7 @@ class OrderHistoryPage extends StatelessWidget {
     }
 
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text(
           'Order History',
@@ -31,6 +33,7 @@ class OrderHistoryPage extends StatelessWidget {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
       ),
+      drawer: UserDrawer(),
       body: StreamBuilder<List<Order>>(
         stream: Order.getOrderHistory(userId),
         builder: (context, snapshot) {
@@ -300,7 +303,9 @@ class Order {
         orderId: id,
         date: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
         status: OrderStatus.values.firstWhere(
-          (e) => e.name.toLowerCase() == (data['status'] as String?)?.toLowerCase(),
+          (e) =>
+              e.name.toLowerCase() ==
+              (data['status'] as String?)?.toLowerCase(),
           orElse: () => OrderStatus.delivered,
         ),
         amount: (data['total'] as num?)?.toDouble() ?? 0.0,
@@ -318,26 +323,30 @@ class Order {
     }
   }
 
-  static CollectionReference<Order> get collection =>
-      FirebaseFirestore.instance.collection('orders').withConverter<Order>(
-            fromFirestore: (snapshot, _) =>
-                Order.fromMap(snapshot.data()!, snapshot.id),
-            toFirestore: (order, _) => {
-              'userId': FirebaseAuth.instance.currentUser?.uid ?? '',
-              'createdAt': Timestamp.fromDate(order.date),
-              'status': order.status.name.toLowerCase(),
-              'total': order.amount,
-              'items': order.items.map((item) => item.toMap()).toList(),
-            },
-          );
+  static CollectionReference<Order> get collection => FirebaseFirestore.instance
+      .collection('orders')
+      .withConverter<Order>(
+        fromFirestore: (snapshot, _) =>
+            Order.fromMap(snapshot.data()!, snapshot.id),
+        toFirestore: (order, _) => {
+          'userId': FirebaseAuth.instance.currentUser?.uid ?? '',
+          'createdAt': Timestamp.fromDate(order.date),
+          'status': order.status.name.toLowerCase(),
+          'total': order.amount,
+          'items': order.items.map((item) => item.toMap()).toList(),
+        },
+      );
 
   static Stream<List<Order>> getOrderHistory(String userId) {
     return collection
         .where('userId', isEqualTo: userId)
-        .where('status', whereIn: [
-          OrderStatus.delivered.name.toLowerCase(),
-          OrderStatus.cancelled.name.toLowerCase(),
-        ])
+        .where(
+          'status',
+          whereIn: [
+            OrderStatus.delivered.name.toLowerCase(),
+            OrderStatus.cancelled.name.toLowerCase(),
+          ],
+        )
         .orderBy('createdAt', descending: true)
         .snapshots()
         .handleError((error) {
@@ -371,12 +380,7 @@ class OrderItem {
       );
     } catch (e) {
       debugPrint('🔥 Error parsing order item: $e\nData: $data');
-      return OrderItem(
-        name: 'Error Item',
-        quantity: 1,
-        price: 0.0,
-        image: '',
-      );
+      return OrderItem(name: 'Error Item', quantity: 1, price: 0.0, image: '');
     }
   }
 

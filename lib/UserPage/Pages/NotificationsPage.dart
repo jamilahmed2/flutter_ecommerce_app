@@ -2,6 +2,66 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_ecommerce_app/UserPage/NavbarComponents/UserDrawer.dart';
+import 'dart:async';
+
+class NotificationModel {
+  final String id;
+  final String type;
+  final String title;
+  final String message;
+  final DateTime time;
+  bool read;
+  final String? orderId;
+  final String? productId;
+  final String? offerId;
+
+  NotificationModel({
+    required this.id,
+    required this.type,
+    required this.title,
+    required this.message,
+    required this.time,
+    this.read = false,
+    this.orderId,
+    this.productId,
+    this.offerId,
+  });
+
+  factory NotificationModel.fromFirestore(DocumentSnapshot doc) {
+    Map data = doc.data() as Map<String, dynamic>;
+    return NotificationModel(
+      id: doc.id,
+      type: data['type'] ?? 'info',
+      title: data['title'] ?? 'Notification',
+      message: data['message'] ?? '',
+      time: (data['time'] as Timestamp).toDate(),
+      read: data['read'] ?? false,
+      orderId: data['orderId'],
+      productId: data['productId'],
+      offerId: data['offerId'],
+    );
+  }
+
+  IconData get icon {
+    switch (type) {
+      case 'order':
+        return Icons.local_shipping;
+      case 'promo':
+        return Icons.local_offer;
+      case 'info':
+        return Icons.new_releases;
+      default:
+        return Icons.notifications;
+    }
+  }
+
+  Color get color {
+    return Colors.white;
+  }
+}
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -11,71 +71,187 @@ class NotificationsPage extends StatefulWidget {
 }
 
 class _NotificationsPageState extends State<NotificationsPage> {
-  final List<Map<String, dynamic>> _notifications = [
-    {
-      'type': 'order',
-      'title': 'Order Delivered',
-      'message': 'Your order #NRT1001 has been delivered successfully',
-      'time': DateTime.now().subtract(const Duration(minutes: 5)),
-      'read': false,
-      'icon': Icons.local_shipping,
-    },
-    {
-      'type': 'promo',
-      'title': 'Special Offer',
-      'message': 'Get 20% off on all rice products today!',
-      'time': DateTime.now().subtract(const Duration(hours: 2)),
-      'read': false,
-      'icon': Icons.local_offer,
-    },
-    {
-      'type': 'info',
-      'title': 'New Products Added',
-      'message': 'Check out our new premium basmati rice collection',
-      'time': DateTime.now().subtract(const Duration(days: 1)),
-      'read': true,
-      'icon': Icons.new_releases,
-    },
-    // Add more notifications as needed
-  ];
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  Stream<QuerySnapshot>? _notificationsStream;
+  StreamSubscription<User?>? _authSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupAuthListener();
+  }
+
+  void _setupAuthListener() {
+    _authSubscription = _auth.authStateChanges().listen((user) {
+      if (mounted) {
+        setState(() {
+          _loadNotifications();
+        });
+      }
+    });
+    _loadNotifications();
+  }
+
+  void _loadNotifications() {
+    final userId = _auth.currentUser?.uid;
+    if (userId != null) {
+      _notificationsStream = _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('notifications')
+          .orderBy('time', descending: true)
+          .snapshots();
+    } else {
+      _notificationsStream = null;
+    }
+  }
+
+  Future<void> _markAsRead(String notificationId) async {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) return;
+
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('notifications')
+        .doc(notificationId)
+        .update({'read': true});
+  }
+
+  Future<void> _markAllAsRead(List<NotificationModel> notifications) async {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) return;
+
+    final batch = _firestore.batch();
+    final collectionRef = _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('notifications');
+
+    for (final notification in notifications) {
+      if (!notification.read) {
+        batch.update(collectionRef.doc(notification.id), {'read': true});
+      }
+    }
+    await batch.commit();
+  }
+
+  Future<void> _deleteNotification(String notificationId) async {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) return;
+
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('notifications')
+        .doc(notificationId)
+        .delete();
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
+  Widget _buildLoginMessage() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.notifications_off, size: 80, color: Colors.grey[700]),
+          const SizedBox(height: 16),
+          Text(
+            'Login to View Notifications',
+            style: GoogleFonts.poppins(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Please sign in to access your notifications',
+            style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[500]),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              // Add navigation to login screen
+              Navigator.pushNamed(context, '/login');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'Sign In',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = _auth.currentUser;
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.white,
         elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
         title: Text(
           'Notifications',
           style: GoogleFonts.poppins(
             fontSize: 20,
             fontWeight: FontWeight.bold,
+            color: Colors.black,
           ),
         ),
-        actions: [
-          if (_notifications.isNotEmpty)
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  for (var notification in _notifications) {
-                    notification['read'] = true;
-                  }
-                });
-              },
-              child: Text(
-                'Mark all as read',
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-        ],
       ),
-      body: _notifications.isEmpty
-          ? _buildEmptyState()
-          : _buildNotificationsList(),
+      drawer: UserDrawer(),
+      body: currentUser == null
+          ? _buildLoginMessage()
+          : StreamBuilder<QuerySnapshot>(
+              stream: _notificationsStream,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Error: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.black),
+                    ),
+                  );
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.black),
+                  );
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return _buildEmptyState();
+                }
+
+                final notifications = snapshot.data!.docs
+                    .map((doc) => NotificationModel.fromFirestore(doc))
+                    .toList();
+
+                return _buildNotificationsList(notifications);
+              },
+            ),
     );
   }
 
@@ -84,66 +260,74 @@ class _NotificationsPageState extends State<NotificationsPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.notifications_none,
-            size: 80,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.notifications_none, size: 80, color: Colors.grey[700]),
           const SizedBox(height: 16),
           Text(
             'No notifications yet',
             style: GoogleFonts.poppins(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[700],
+              color: Colors.black,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'We\'ll notify you when something arrives',
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
+            style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[500]),
           ),
         ],
       ),
     ).animate().fadeIn(duration: 600.ms);
   }
 
-  Widget _buildNotificationsList() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _notifications.length,
-      itemBuilder: (context, index) {
-        return _buildNotificationCard(_notifications[index], index);
-      },
+  Widget _buildNotificationsList(List<NotificationModel> notifications) {
+    return Column(
+      children: [
+        if (notifications.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => _markAllAsRead(notifications),
+                child: Text(
+                  'Mark all as read',
+                  style: GoogleFonts.poppins(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: notifications.length,
+            itemBuilder: (context, index) {
+              return _buildNotificationCard(notifications[index], index);
+            },
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildNotificationCard(Map<String, dynamic> notification, int index) {
-    Color backgroundColor = notification['read']
-        ? Colors.white
-        : Colors.green.withOpacity(0.05);
-    Color iconColor = _getIconColor(notification['type']);
+  Widget _buildNotificationCard(NotificationModel notification, int index) {
+    final backgroundColor = notification.read
+        ? Colors.grey[900]
+        : Colors.grey[850];
 
     return Dismissible(
-      key: Key(notification['title']),
+      key: Key(notification.id),
       background: Container(
         color: Colors.red,
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        child: const Icon(
-          Icons.delete,
-          color: Colors.white,
-        ),
+        child: const Icon(Icons.delete, color: Colors.white),
       ),
       direction: DismissDirection.endToStart,
-      onDismissed: (direction) {
-        setState(() {
-          _notifications.removeAt(index);
-        });
-      },
+      onDismissed: (_) => _deleteNotification(notification.id),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
@@ -151,39 +335,35 @@ class _NotificationsPageState extends State<NotificationsPage> {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: ListTile(
           onTap: () {
-            setState(() {
-              notification['read'] = true;
-            });
-            // Handle notification tap
+            if (!notification.read) {
+              _markAsRead(notification.id);
+            }
           },
           contentPadding: const EdgeInsets.all(16),
           leading: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: Colors.grey[800],
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              notification['icon'],
-              color: iconColor,
-              size: 24,
-            ),
+            child: Icon(notification.icon, color: Colors.white, size: 24),
           ),
           title: Text(
-            notification['title'],
+            notification.title,
             style: GoogleFonts.poppins(
               fontSize: 16,
-              fontWeight: notification['read']
+              fontWeight: notification.read
                   ? FontWeight.normal
                   : FontWeight.bold,
+              color: Colors.white,
             ),
           ),
           subtitle: Column(
@@ -191,18 +371,18 @@ class _NotificationsPageState extends State<NotificationsPage> {
             children: [
               const SizedBox(height: 4),
               Text(
-                notification['message'],
+                notification.message,
                 style: GoogleFonts.poppins(
                   fontSize: 14,
-                  color: Colors.grey[600],
+                  color: Colors.grey[300],
                 ),
               ),
               const SizedBox(height: 4),
               Text(
-                timeago.format(notification['time']),
+                timeago.format(notification.time),
                 style: GoogleFonts.poppins(
                   fontSize: 12,
-                  color: Colors.grey,
+                  color: Colors.grey[500],
                 ),
               ),
             ],
@@ -210,18 +390,5 @@ class _NotificationsPageState extends State<NotificationsPage> {
         ),
       ),
     ).animate().fadeIn(delay: (100 * index).ms).slideX();
-  }
-
-  Color _getIconColor(String type) {
-    switch (type) {
-      case 'order':
-        return Colors.blue;
-      case 'promo':
-        return Colors.orange;
-      case 'info':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
   }
 }

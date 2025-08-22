@@ -41,7 +41,7 @@ class _BrandPageState extends State<BrandPage> {
           ),
         ],
       ),
-      drawer: const UserDrawer(),
+      drawer: UserDrawer(),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

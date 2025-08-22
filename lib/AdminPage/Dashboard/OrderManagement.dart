@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../models/Product.dart';
 import '../../UserPage/models/Order.dart' as user_order;
+import 'package:flutter_ecommerce_app/services/notification_service.dart';
 
 class OrderManagement extends StatefulWidget {
   const OrderManagement({super.key});
@@ -23,6 +24,7 @@ class _OrderManagementState extends State<OrderManagement> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
           'Order Management',
@@ -50,7 +52,7 @@ class _OrderManagementState extends State<OrderManagement> {
                 }
 
                 final orders = snapshot.data ?? [];
-                
+
                 if (orders.isEmpty) {
                   return _buildEmptyState();
                 }
@@ -58,7 +60,7 @@ class _OrderManagementState extends State<OrderManagement> {
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: orders.length,
-                  itemBuilder: (context, index) => 
+                  itemBuilder: (context, index) =>
                       _buildOrderCard(orders[index], index),
                 );
               },
@@ -99,15 +101,16 @@ class _OrderManagementState extends State<OrderManagement> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  items: [
-                    'All',
-                    ...user_order.OrderStatus.values.map((s) => s.name),
-                  ].map((status) {
-                    return DropdownMenuItem(
-                      value: status,
-                      child: Text(status),
-                    );
-                  }).toList(),
+                  items:
+                      [
+                        'All',
+                        ...user_order.OrderStatus.values.map((s) => s.name),
+                      ].map((status) {
+                        return DropdownMenuItem(
+                          value: status,
+                          child: Text(status),
+                        );
+                      }).toList(),
                   onChanged: (value) {
                     setState(() => _statusFilter = value!);
                   },
@@ -116,24 +119,17 @@ class _OrderManagementState extends State<OrderManagement> {
               const SizedBox(width: 16),
               DropdownButton<String>(
                 value: _sortBy,
-                items: [
-                  'createdAt',
-                  'total',
-                  'status',
-                ].map((field) {
-                  return DropdownMenuItem(
-                    value: field,
-                    child: Text(field),
-                  );
+                items: ['createdAt', 'total', 'status'].map((field) {
+                  return DropdownMenuItem(value: field, child: Text(field));
                 }).toList(),
                 onChanged: (value) {
                   setState(() => _sortBy = value!);
                 },
               ),
               IconButton(
-                icon: Icon(_sortDescending 
-                    ? Icons.arrow_downward 
-                    : Icons.arrow_upward),
+                icon: Icon(
+                  _sortDescending ? Icons.arrow_downward : Icons.arrow_upward,
+                ),
                 onPressed: () {
                   setState(() => _sortDescending = !_sortDescending);
                 },
@@ -147,6 +143,7 @@ class _OrderManagementState extends State<OrderManagement> {
 
   Widget _buildOrderCard(user_order.Order order, int index) {
     return Card(
+      color: Colors.grey[100],
       margin: const EdgeInsets.only(bottom: 16),
       child: ExpansionTile(
         title: Row(
@@ -287,24 +284,37 @@ class _OrderManagementState extends State<OrderManagement> {
 
     if (_searchQuery.isNotEmpty) {
       // Update search to match user_order model
-      query = query.where('userId', isGreaterThanOrEqualTo: _searchQuery)
+      query = query
+          .where('userId', isGreaterThanOrEqualTo: _searchQuery)
           .where('userId', isLessThanOrEqualTo: _searchQuery + '\uf8ff');
     }
 
     return query
         .orderBy(_sortBy, descending: _sortDescending)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => user_order.Order.fromMap(
-                doc.data() as Map<String, dynamic>, doc.id))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map(
+                (doc) => user_order.Order.fromMap(
+                  doc.data() as Map<String, dynamic>,
+                  doc.id,
+                ),
+              )
+              .toList(),
+        );
   }
 
   Widget _buildOrderDetails(user_order.Order order) {
     return Column(
       children: [
-        _buildDetailRow('Subtotal:', 'PKR ${order.subtotal.toStringAsFixed(2)}'),
-        _buildDetailRow('Delivery:', 'PKR ${order.deliveryFee.toStringAsFixed(2)}'),
+        _buildDetailRow(
+          'Subtotal:',
+          'PKR ${order.subtotal.toStringAsFixed(2)}',
+        ),
+        _buildDetailRow(
+          'Delivery:',
+          'PKR ${order.deliveryFee.toStringAsFixed(2)}',
+        ),
         _buildDetailRow('Total:', 'PKR ${order.total.toStringAsFixed(2)}'),
         const Divider(),
         _buildDetailRow('Address:', order.shippingAddress),
@@ -332,12 +342,7 @@ class _OrderManagementState extends State<OrderManagement> {
               ),
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: GoogleFonts.poppins(),
-            ),
-          ),
+          Expanded(child: Text(value, style: GoogleFonts.poppins())),
         ],
       ),
     );
@@ -349,7 +354,7 @@ class _OrderManagementState extends State<OrderManagement> {
       runSpacing: 8,
       children: user_order.OrderStatus.values.map((status) {
         if (status == order.status) return const SizedBox.shrink();
-        
+
         return ElevatedButton(
           onPressed: () => _updateOrderStatus(order, status),
           style: ElevatedButton.styleFrom(
@@ -391,30 +396,40 @@ class _OrderManagementState extends State<OrderManagement> {
           const SizedBox(height: 16),
           Text(
             'No orders found',
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              color: Colors.grey[600],
-            ),
+            style: GoogleFonts.poppins(fontSize: 18, color: Colors.grey[600]),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _updateOrderStatus(user_order.Order order, user_order.OrderStatus newStatus) async {
+  Future<void> _updateOrderStatus(
+    user_order.Order order,
+    user_order.OrderStatus newStatus,
+  ) async {
     try {
       await order.updateStatus(newStatus);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Order status updated to ${newStatus.name}')),
         );
       }
+
+      await NotificationService().addUserNotification(
+        userId:
+            order.userId, // ✅ Make sure this field exists in the Order model
+        type: 'order',
+        title: 'Order Updated',
+        message:
+            'Your order #${order.id.substring(0, 8)} is now ${newStatus.name}',
+        orderId: order.id,
+      );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating status: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error updating status: $e')));
       }
     }
   }

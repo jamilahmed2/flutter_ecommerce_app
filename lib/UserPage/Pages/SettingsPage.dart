@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_ecommerce_app/UserPage/Pages/ProfilePage.dart';
+import 'package:flutter_ecommerce_app/UserPage/Pages/PrivacyPolicyPage.dart';
+import 'package:flutter_ecommerce_app/UserPage/Pages/TermsPage.dart';
+import 'package:flutter_ecommerce_app/UserPage/NavbarComponents/UserDrawer.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -11,9 +14,12 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool _notificationsEnabled = true;
-  bool _darkMode = false;
   String _selectedLanguage = 'English';
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,26 +30,10 @@ class _SettingsPageState extends State<SettingsPage> {
           {
             'title': 'Profile Information',
             'icon': Icons.person_outline,
-            'onTap': (BuildContext context) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfilePage()),
-              );
-            },
-          },
-          {
-            'title': 'Change Password',
-            'icon': Icons.lock_outline,
-            'onTap': () {
-              // TODO: Implement change password functionality
-            },
-          },
-          {
-            'title': 'Delivery Addresses',
-            'icon': Icons.location_on_outlined,
-            'onTap': () {
-              // TODO: Implement delivery addresses functionality
-            },
+            'onTap': () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfilePage()),
+            ),
           },
         ],
       },
@@ -51,37 +41,16 @@ class _SettingsPageState extends State<SettingsPage> {
         'title': 'Preferences',
         'settings': [
           {
-            'title': 'Notifications',
-            'icon': Icons.notifications_outlined,
-            'isSwitch': true,
-            'value': _notificationsEnabled,
-            'onChanged': (bool value) {
-              setState(() {
-                _notificationsEnabled = value;
-              });
-            },
-          },
-          {
-            'title': 'Dark Mode',
-            'icon': Icons.dark_mode_outlined,
-            'isSwitch': true,
-            'value': _darkMode,
-            'onChanged': (bool value) {
-              setState(() {
-                _darkMode = value;
-              });
-            },
-          },
-          {
             'title': 'Language',
             'icon': Icons.language_outlined,
             'value': _selectedLanguage,
             'isDropdown': true,
-            'options': ['English', 'Urdu'],
+            'options': ['English'],
             'onChanged': (String? newValue) {
               if (newValue != null) {
                 setState(() {
                   _selectedLanguage = newValue;
+                  // TODO: Implement localization switching here
                 });
               }
             },
@@ -95,14 +64,20 @@ class _SettingsPageState extends State<SettingsPage> {
             'title': 'Privacy Policy',
             'icon': Icons.privacy_tip_outlined,
             'onTap': () {
-              // TODO: Implement privacy policy functionality
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
+              );
             },
           },
           {
             'title': 'Terms of Service',
             'icon': Icons.description_outlined,
             'onTap': () {
-              // TODO: Implement terms of service functionality
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TermsPage()),
+              );
             },
           },
         ],
@@ -112,18 +87,19 @@ class _SettingsPageState extends State<SettingsPage> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.white,
         elevation: 0,
         title: Text(
           'Settings',
           style: GoogleFonts.poppins(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: Colors.black,
           ),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: Colors.black),
       ),
+      drawer: UserDrawer(),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: settingsSections.length,
@@ -182,34 +158,50 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildSettingTile(Map<String, dynamic> setting, int index) {
-    return ListTile(
-      leading: Icon(setting['icon'] as IconData, color: Colors.black),
-      title: Text(
-        setting['title'],
-        style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[800]),
-      ),
-      trailing: setting['isSwitch'] == true
-          ? Switch(
-              value: setting['value'] as bool,
-              onChanged: setting['onChanged'] as Function(bool)?,
-              activeColor: Colors.black,
-            )
-          : setting['isDropdown'] == true
-          ? DropdownButton<String>(
-              value: setting['value'] as String,
-              underline: const SizedBox(),
-              items: (setting['options'] as List<String>)
-                  .map(
-                    (String option) => DropdownMenuItem<String>(
-                      value: option,
-                      child: Text(option),
-                    ),
-                  )
-                  .toList(),
-              onChanged: setting['onChanged'] as Function(String?)?,
-            )
-          : const Icon(Icons.arrow_forward_ios, size: 16),
-      onTap: setting['onTap'] != null ? () => setting['onTap']() : null,
-    );
+    if (setting['isSwitch'] == true) {
+      return SwitchListTile(
+        secondary: Icon(setting['icon'] as IconData, color: Colors.black),
+        title: Text(
+          setting['title'],
+          style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[800]),
+        ),
+        value: setting['value'] as bool,
+        onChanged: setting['onChanged'] as Function(bool)?,
+        activeColor: Colors.black,
+      );
+    } else if (setting['isDropdown'] == true) {
+      return ListTile(
+        leading: Icon(setting['icon'] as IconData, color: Colors.black),
+        title: Text(
+          setting['title'],
+          style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[800]),
+        ),
+        trailing: DropdownButton<String>(
+          value: setting['value'] as String,
+          underline: const SizedBox(),
+          items: (setting['options'] as List<String>)
+              .map(
+                (String option) => DropdownMenuItem<String>(
+                  value: option,
+                  child: Text(option),
+                ),
+              )
+              .toList(),
+          onChanged: setting['onChanged'] as Function(String?)?,
+        ),
+      );
+    } else {
+      return ListTile(
+        leading: Icon(setting['icon'] as IconData, color: Colors.black),
+        title: Text(
+          setting['title'],
+          style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[800]),
+        ),
+        trailing: setting['onTap'] != null
+            ? const Icon(Icons.arrow_forward_ios, size: 16)
+            : null,
+        onTap: setting['onTap'] != null ? () => setting['onTap']() : null,
+      );
+    }
   }
 }

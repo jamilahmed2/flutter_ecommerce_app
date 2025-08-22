@@ -20,7 +20,6 @@ class HomePage extends StatefulWidget {
   final String? categoryId;
   final String? productId;
   final ProductFilter? filter;
-
   const HomePage({super.key, this.categoryId, this.productId, this.filter});
 
   @override
@@ -61,13 +60,9 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: backgroundColor,
         elevation: 0,
         centerTitle: true,
-        title: Text(
-          'Nawab Rice Trader',
-          style: GoogleFonts.poppins(
-            fontSize: isSmallScreen ? 18 : 20,
-            fontWeight: FontWeight.bold,
-            color: primaryColor,
-          ),
+        title: Image.asset(
+          'assets/images/logo.png',
+          height: isSmallScreen ? 60 : 50, // adjust size as needed
         ),
         actions: [
           IconButton(
@@ -97,7 +92,7 @@ class _HomePageState extends State<HomePage> {
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
       ),
-      drawer: const UserDrawer(),
+      drawer: UserDrawer(),
     );
   }
 }
@@ -188,21 +183,10 @@ class _HomeContentState extends State<HomeContent> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(15),
-          child: CachedNetworkImage(
-            imageUrl: 'assets/images/offers.jpg',
-            fit: BoxFit.cover,
-            placeholder: (context, url) => Container(
-              color: Colors.grey[200],
-              child: const Center(child: CircularProgressIndicator()),
-            ),
-            errorWidget: (context, url, error) => Container(
-              color: Colors.grey[200],
-              child: const Icon(Icons.image, color: lightTextColor, size: 50),
-            ),
-          ),
+          child: Image.asset('assets/images/hero.jpg', fit: BoxFit.cover),
         ),
-      ),
-    ).animate().fadeIn(duration: 800.ms).slideY(begin: 0.1, end: 0);
+      ).animate().fadeIn(duration: 800.ms).slideY(begin: 0.1, end: 0),
+    );
   }
 
   Widget _buildCategoriesSection() {
@@ -309,36 +293,36 @@ class _HomeContentState extends State<HomeContent> {
                 borderRadius: BorderRadius.circular(15),
                 child: hasImage
                     ? CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          color: Colors.grey[200],
-                          child: Center(
-                            child: Icon(
-                              _getCategoryIcon(iconName),
-                              size: 30,
-                              color: lightTextColor,
-                            ),
-                          ),
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          color: Colors.grey[200],
-                          child: Center(
-                            child: Icon(
-                              _getCategoryIcon(iconName),
-                              size: 30,
-                              color: lightTextColor,
-                            ),
-                          ),
-                        ),
-                      )
-                    : Center(
-                        child: Icon(
-                          _getCategoryIcon(iconName),
-                          size: 30,
-                          color: primaryColor,
-                        ),
+                  imageUrl: imageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    color: Colors.grey[200],
+                    child: Center(
+                      child: Icon(
+                        _getCategoryIcon(iconName),
+                        size: 30,
+                        color: lightTextColor,
                       ),
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    color: Colors.grey[200],
+                    child: Center(
+                      child: Icon(
+                        _getCategoryIcon(iconName),
+                        size: 30,
+                        color: lightTextColor,
+                      ),
+                    ),
+                  ),
+                )
+                    : Center(
+                  child: Icon(
+                    _getCategoryIcon(iconName),
+                    size: 30,
+                    color: primaryColor,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -467,9 +451,9 @@ class _HomeContentState extends State<HomeContent> {
                 imageUrl: brand.logoUrl ?? '',
                 fit: BoxFit.contain,
                 placeholder: (context, url) =>
-                    const Center(child: CircularProgressIndicator()),
+                const Center(child: CircularProgressIndicator()),
                 errorWidget: (context, url, error) =>
-                    const Icon(Icons.business, color: primaryColor, size: 30),
+                const Icon(Icons.business, color: primaryColor, size: 30),
               ),
             ),
             const SizedBox(height: 5),
@@ -528,9 +512,7 @@ class _HomeContentState extends State<HomeContent> {
                   TextButton(
                     onPressed: () => Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => const ProductsPage(),
-                      ),
+                      MaterialPageRoute(builder: (context) => ProductsPage()),
                     ),
                     child: Text(
                       'View All',
@@ -567,6 +549,7 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
+  // Updated Product Card with Responsive Pricing (Column Layout)
   Widget _buildProductCard(Product product, int index) {
     return GestureDetector(
       onTap: () => Navigator.push(
@@ -629,7 +612,7 @@ class _HomeContentState extends State<HomeContent> {
                         child: Text(
                           '${((product.price - product.discountPrice!) / product.price * 100).toStringAsFixed(0)}% OFF',
                           style: GoogleFonts.poppins(
-                            fontSize: 12,
+                            fontSize: 10,
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),
@@ -655,27 +638,37 @@ class _HomeContentState extends State<HomeContent> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
-                  Row(
+                  // Responsive Pricing with Column Layout
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'PKR ${product.finalPrice.toStringAsFixed(2)}',
-                        style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: primaryColor,
-                        ),
-                      ),
-                      if (product.discountPrice != null) ...[
-                        const SizedBox(width: 6),
-                        Text(
-                          'PKR ${product.price.toStringAsFixed(2)}',
+                      // Current/Final Price
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'PKR ${product.finalPrice.toStringAsFixed(2)}',
                           style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            decoration: TextDecoration.lineThrough,
-                            color: lightTextColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: primaryColor,
                           ),
                         ),
-                      ],
+                      ),
+                      // Original Price (if discounted)
+                      if (product.discountPrice != null)
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'PKR ${product.price.toStringAsFixed(2)}',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              decoration: TextDecoration.lineThrough,
+                              color: lightTextColor,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ],
@@ -736,7 +729,7 @@ class _HomeContentState extends State<HomeContent> {
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
-                            const ProductsPage(filter: ProductFilter.deals),
+                        const ProductsPage(filter: ProductFilter.deals),
                       ),
                     ),
                     style: ElevatedButton.styleFrom(

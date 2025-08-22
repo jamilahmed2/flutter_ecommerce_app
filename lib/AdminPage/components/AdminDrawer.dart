@@ -5,6 +5,8 @@ import '../Dashboard/ProductManagement.dart';
 import '../Dashboard/CategoryManagement.dart';
 import '../Dashboard/BrandManagement.dart';
 import '../Dashboard/OrderManagement.dart';
+import '../Dashboard/AdminOfferManagement.dart';
+import '../Dashboard/ContactDetailsManagement.dart';
 
 class AdminDrawer extends StatelessWidget {
   const AdminDrawer({super.key});
@@ -12,6 +14,7 @@ class AdminDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
+      backgroundColor: Colors.white,
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
@@ -83,6 +86,22 @@ class AdminDrawer extends StatelessWidget {
               MaterialPageRoute(builder: (context) => const BrandManagement()),
             ),
           ),
+          _buildDrawerItem(
+            icon: Icons.local_offer,
+            title: 'Offers',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AdminOfferManagement()),
+            ),
+          ),
+          _buildDrawerItem(
+            icon: Icons.contact_phone,
+            title: 'Contact Details',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ContactDetailsManagement()),
+            ),
+          ),
           const Divider(),
           _buildDrawerItem(
             icon: Icons.logout,
@@ -143,7 +162,7 @@ class AdminDrawer extends StatelessWidget {
     if (confirm == true) {
       await FirebaseAuth.instance.signOut();
       if (context.mounted) {
-        Navigator.pushReplacementNamed(context, '/login');
+        Navigator.pushReplacementNamed(context, '/');
       }
     }
   }

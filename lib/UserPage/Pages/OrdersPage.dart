@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_ecommerce_app/UserPage/Pages/ProductsPage.dart';
 import 'package:flutter_ecommerce_app/UserPage/models/Order.dart';
+import 'package:flutter_ecommerce_app/UserPage/NavbarComponents/UserDrawer.dart';
 
 class OrdersPage extends StatelessWidget {
   const OrdersPage({super.key});
@@ -19,6 +20,7 @@ class OrdersPage extends StatelessWidget {
     }
 
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text(
           'My Orders',
@@ -31,6 +33,7 @@ class OrdersPage extends StatelessWidget {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
       ),
+      drawer: UserDrawer(),
       body: StreamBuilder<List<Order>>(
         stream: Order.getActiveOrders(userId),
         builder: (context, snapshot) {

@@ -3,6 +3,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_ecommerce_app/UserPage/NavbarComponents/UserDrawer.dart';
+import 'package:flutter_ecommerce_app/UserPage/Pages/ProductsPage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 
 class OffersPage extends StatefulWidget {
   const OffersPage({super.key});
@@ -12,31 +16,7 @@ class OffersPage extends StatefulWidget {
 }
 
 class _OffersPageState extends State<OffersPage> {
-  final List<Map<String, dynamic>> _offers = [
-    {
-      'title': 'Weekend Special',
-      'description': 'Get 20% off on all rice products',
-      'code': 'WEEKEND20',
-      'validUntil': '31 May 2025',
-      'image': 'https://images.unsplash.com/photo-1586201375761-83865001e31c',
-      'discount': '20%',
-      'minPurchase': 'PKR 2000',
-      'category': 'Rice',
-      'isActive': true,
-    },
-    {
-      'title': 'New User Offer',
-      'description': 'Get 15% off on your first order',
-      'code': 'WELCOME15',
-      'validUntil': '30 June 2025',
-      'image': 'https://images.unsplash.com/photo-1542838132-92c53300491e',
-      'discount': '15%',
-      'minPurchase': 'PKR 1500',
-      'category': 'All Categories',
-      'isActive': true,
-    },
-    // Add more offers here
-  ];
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   Widget build(BuildContext context) {
@@ -53,16 +33,36 @@ class _OffersPageState extends State<OffersPage> {
             color: Colors.black,
           ),
         ),
-        iconTheme: const IconThemeData(
-          color: Colors.black,
-        ), // Hamburger icon color
+        iconTheme: const IconThemeData(color: Colors.black),
       ),
-      drawer: const UserDrawer(), // Added drawer
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [_buildHeader(), _buildOffersList()],
-        ),
+      drawer: const UserDrawer(),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: _firestore
+            .collection('offers')
+            .where('isActive', isEqualTo: true)
+            .orderBy('validUntil', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            debugPrint('OffersPage Firestore error: ${snapshot.error}');
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final offers = snapshot.data!.docs;
+          if (offers.isEmpty) {
+            return Center(child: Text('No offers available'));
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: offers.length,
+            itemBuilder: (context, index) {
+              final offer = offers[index].data() as Map<String, dynamic>;
+              return _buildOfferCard(offer, index);
+            },
+          );
+        },
       ),
     );
   }
@@ -95,21 +95,40 @@ class _OffersPageState extends State<OffersPage> {
     );
   }
 
-  Widget _buildOffersList() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: _offers.length,
-        itemBuilder: (context, index) {
-          return _buildOfferCard(_offers[index], index);
-        },
-      ),
-    );
-  }
-
   Widget _buildOfferCard(Map<String, dynamic> offer, int index) {
+    final imageUrl = offer['imageUrl'] ?? '';
+    final validUntil = offer['validUntil'];
+    String validUntilStr = '';
+    DateTime? validUntilDate;
+    if (validUntil != null) {
+      try {
+        validUntilDate = validUntil is Timestamp
+            ? validUntil.toDate()
+            : DateTime.tryParse(validUntil.toString());
+
+        if (validUntilDate != null) {
+          validUntilStr = DateFormat('dd MMM yyyy').format(validUntilDate);
+        }
+      } catch (e) {
+        debugPrint('Error parsing date: $e');
+      }
+    } // if (validUntilDate != null && validUntilDate.isBefore(DateTime.now())) {
+    //   return const SizedBox.shrink(); // Don't show expired offers
+    // }
+
+    if (validUntil != null) {
+      try {
+        final date = validUntil is Timestamp
+            ? validUntil.toDate()
+            : DateTime.tryParse(validUntil.toString());
+        if (date != null) {
+          validUntilStr = DateFormat('dd MMM yyyy').format(date);
+        }
+      } catch (e) {
+        validUntilStr = '';
+      }
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -128,43 +147,32 @@ class _OffersPageState extends State<OffersPage> {
         children: [
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: Stack(
-              children: [
-                CachedNetworkImage(
-                  imageUrl: offer['image'],
-                  height: 150,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
+            child: imageUrl.isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    height: 150,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      color: Colors.grey[200],
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+                    errorWidget: (context, url, error) => const Icon(
+                      Icons.local_offer,
+                      size: 80,
+                      color: Colors.grey,
+                    ),
+                  )
+                : Container(
+                    height: 150,
+                    width: double.infinity,
                     color: Colors.grey[200],
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                  errorWidget: (context, url, error) => const Icon(Icons.error),
-                ),
-                Positioned(
-                  top: 16,
-                  right: 16,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      offer['discount'],
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                    child: const Icon(
+                      Icons.local_offer,
+                      size: 80,
+                      color: Colors.grey,
                     ),
                   ),
-                ),
-              ],
-            ),
           ),
           Padding(
             padding: const EdgeInsets.all(16),
@@ -224,7 +232,12 @@ class _OffersPageState extends State<OffersPage> {
                     const SizedBox(width: 12),
                     IconButton(
                       onPressed: () {
-                        // Implement copy to clipboard
+                        Clipboard.setData(
+                          ClipboardData(text: offer['code'] ?? ''),
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Offer code copied!')),
+                        );
                       },
                       icon: const Icon(Icons.copy, color: Colors.black),
                     ),
@@ -242,7 +255,9 @@ class _OffersPageState extends State<OffersPage> {
                       ),
                     ),
                     Text(
-                      'Valid until ${offer["validUntil"]}',
+                      validUntilStr.isNotEmpty
+                          ? 'Valid until $validUntilStr'
+                          : '',
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: Colors.grey[600],
@@ -255,7 +270,12 @@ class _OffersPageState extends State<OffersPage> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      // Navigate to products or apply offer
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ProductsPage(),
+                        ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,

@@ -132,7 +132,7 @@ class _UserDrawerState extends State<UserDrawer> {
             _buildDrawerItem(
               icon: Icons.settings,
               title: 'Settings',
-              onTap: () => _navigate(context, const SettingsPage()),
+              onTap: () => _navigate(context, SettingsPage()),
             ),
 
           // Authentication section
@@ -183,15 +183,11 @@ class _UserDrawerState extends State<UserDrawer> {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: Colors.white,
-                backgroundImage: user?.photoURL != null
-                    ? NetworkImage(user!.photoURL!)
-                    : null,
-                child: user?.photoURL == null
-                    ? Icon(Icons.person, size: 40, color: Colors.grey[700])
-                    : null,
+              Image.asset(
+                'assets/images/logo.png',
+                width: 60,
+                height: 60,
+                fit: BoxFit.cover,
               ),
               const SizedBox(width: 15),
               Expanded(

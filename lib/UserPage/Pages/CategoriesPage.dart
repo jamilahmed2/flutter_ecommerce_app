@@ -41,7 +41,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
           ),
         ],
       ),
-      drawer: const UserDrawer(),
+      drawer: UserDrawer(),
       body: StreamBuilder<QuerySnapshot>(
         stream: _firestore
             .collection('categories')
@@ -164,7 +164,9 @@ class _CategoriesPageState extends State<CategoriesPage> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => ProductsPage()),
+          MaterialPageRoute(
+            builder: (context) => ProductsPage(categoryId: category['id']),
+          ),
         );
       },
       child: Container(

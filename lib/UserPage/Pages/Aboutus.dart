@@ -4,11 +4,20 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:flutter_ecommerce_app/UserPage/NavbarComponents/UserBottomNavbar.dart';
 import 'package:flutter_ecommerce_app/UserPage/NavbarComponents/UserDrawer.dart';
 import 'package:flutter_ecommerce_app/UserPage/Pages/CartPage.dart';
 import 'package:flutter_ecommerce_app/UserPage/Pages/NotificationsPage.dart';
+import 'package:flutter_ecommerce_app/UserPage/Pages/ProductsPage.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_ecommerce_app/UserPage/models/Contact.dart';
+
+final _contactNameController = TextEditingController();
+final _contactEmailController = TextEditingController();
+final _contactPhoneController = TextEditingController();
+final _contactSubjectController = TextEditingController();
+final _contactMessageController = TextEditingController();
+bool _isSendingContact = false;
 
 class AboutUsPage extends StatefulWidget {
   const AboutUsPage({super.key});
@@ -34,8 +43,6 @@ class _AboutUsPageState extends State<AboutUsPage> {
   ); // Light grey background
   final Color textColor = const Color(0xFF212121); // Dark text
   final Color lightTextColor = const Color(0xFF757575); // Light text
-  int _currentIndex = 0;
-  int _currentCarouselIndex = 0;
 
   // Move home content to a separate widget
   final List<Widget> _pages = [];
@@ -76,14 +83,14 @@ class _AboutUsPageState extends State<AboutUsPage> {
     {
       'image':
           'https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-      'name': 'Mohammed Nawab',
+      'name': 'Jamil Ahmed',
       'position': 'Founder & CEO',
       'social': {
         'linkedin': 'https://linkedin.com',
         'twitter': 'https://twitter.com',
       },
       'bio':
-          'With over 25 years in the grocery industry, Mohammed has built Nawab Rice into a household name.',
+          'With over 25 years in the grocery industry, Flutter Ecommerce has built Flutter Ecommerce into a household name.',
     },
     {
       'image':
@@ -131,7 +138,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
       'name': 'Ayesha Siddiqui',
       'role': 'Loyal Customer',
       'quote':
-          'Nawab Rice has transformed my grocery shopping experience. The quality is unmatched!',
+          'Flutter Ecommerce has transformed my grocery shopping experience. The quality is unmatched!',
       'rating': 5,
     },
     {
@@ -140,7 +147,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
       'name': 'Rahul Mehta',
       'role': 'Restaurant Owner',
       'quote':
-          'As a professional chef, I trust only Nawab Rice for premium ingredients. Consistent quality for years.',
+          'As a professional chef, I trust only Flutter Ecommerce for premium ingredients. Consistent quality for years.',
       'rating': 5,
     },
     {
@@ -153,6 +160,24 @@ class _AboutUsPageState extends State<AboutUsPage> {
       'rating': 4,
     },
   ];
+
+  Map<String, dynamic>? _contactDetails;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchContactDetails();
+  }
+
+  Future<void> _fetchContactDetails() async {
+    final doc = await FirebaseFirestore.instance
+        .collection('settings')
+        .doc('contact_details')
+        .get();
+    setState(() {
+      _contactDetails = doc.data();
+    });
+  }
 
   // Launch URLs
   Future<void> _launchUrl(String url) async {
@@ -174,14 +199,6 @@ class _AboutUsPageState extends State<AboutUsPage> {
       extendBodyBehindAppBar: true,
       appBar: _buildAppBar(),
       drawer: UserDrawer(),
-      bottomNavigationBar: UserBottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-      ),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -214,65 +231,19 @@ class _AboutUsPageState extends State<AboutUsPage> {
   }
 
   PreferredSizeWidget _buildAppBar() {
-    if (_currentIndex == 0) {
-      return AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: AnimatedTextKit(
-          animatedTexts: [
-            TyperAnimatedText(
-              'Nawab Rice Trader',
-              textStyle: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-              speed: const Duration(milliseconds: 100),
-            ),
-          ],
-          isRepeatingAnimation: false,
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      title: Text(
+        'About Us',
+        style: GoogleFonts.poppins(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: Colors.black,
         ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications, color: Colors.black),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationsPage(),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.shopping_cart, color: Colors.black),
-            onPressed: () {
-              setState(() {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CartPage()),
-                );
-              });
-            },
-          ),
-        ],
-      );
-    } else {
-      return AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        title: Text(
-          'About Us',
-          style: GoogleFonts.poppins(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        centerTitle: true,
-      );
-    }
+      ),
+      centerTitle: true,
+    );
   }
 
   Widget _buildPremiumHeroSection(Size size, bool isMobile) {
@@ -319,7 +290,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Nawab Rice Trader',
+                  'Flutter Ecommerce App',
                   style: GoogleFonts.playfairDisplay(
                     fontSize: isMobile ? 42 : 64,
                     fontWeight: FontWeight.w900,
@@ -334,9 +305,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
                     ],
                   ),
                 ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.2),
-
                 const SizedBox(height: 12),
-
                 Text(
                   'Premium Groceries Since 1995',
                   style: GoogleFonts.poppins(
@@ -353,13 +322,18 @@ class _AboutUsPageState extends State<AboutUsPage> {
                     ],
                   ),
                 ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.2),
-
                 const SizedBox(height: 30),
-
                 Row(
                   children: [
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ProductsPage(),
+                          ),
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: primaryColor,
@@ -381,34 +355,6 @@ class _AboutUsPageState extends State<AboutUsPage> {
                         ),
                       ),
                     ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.2),
-
-                    const SizedBox(width: 16),
-
-                    OutlinedButton(
-                          onPressed: () {},
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Colors.white),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isMobile ? 24 : 32,
-                              vertical: isMobile ? 14 : 18,
-                            ),
-                            elevation: 0,
-                          ),
-                          child: Text(
-                            'Our Story',
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w600,
-                              fontSize: isMobile ? 16 : 18,
-                            ),
-                          ),
-                        )
-                        .animate()
-                        .fadeIn(delay: 200.ms, duration: 600.ms)
-                        .slideY(begin: 0.2),
                   ],
                 ),
               ],
@@ -441,9 +387,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
               letterSpacing: 3,
             ),
           ).animate().fadeIn(delay: 300.ms),
-
           const SizedBox(height: 20),
-
           Text(
             'A Legacy of Quality and Trust',
             style: GoogleFonts.playfairDisplay(
@@ -453,9 +397,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
               color: Colors.black,
             ),
           ).animate().fadeIn(delay: 400.ms),
-
           const SizedBox(height: 30),
-
           isMobile
               ? Column(
                   children: [
@@ -490,29 +432,25 @@ class _AboutUsPageState extends State<AboutUsPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Founded in 1995 as a small family-run rice shop in the heart of the city, Nawab Rice Trader has grown into one of the most trusted grocery brands in the region.',
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur vitae risus ac sapien efficitur volutpat non a magna.',
           style: GoogleFonts.poppins(
             fontSize: isMobile ? 16 : 18,
             color: textColor,
             height: 1.8,
           ),
         ).animate().fadeIn(delay: 500.ms),
-
         const SizedBox(height: 20),
-
         Text(
-          'What began as a humble storefront with just three varieties of rice has blossomed into a premium grocery destination offering over 500 carefully curated products. Our commitment to quality, authenticity, and customer satisfaction has remained unchanged through our journey.',
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur vitae risus ac sapien efficitur volutpat non a magna.',
           style: GoogleFonts.poppins(
             fontSize: isMobile ? 16 : 18,
             color: textColor,
             height: 1.8,
           ),
         ).animate().fadeIn(delay: 600.ms),
-
         const SizedBox(height: 20),
-
         Text(
-          'Today, we serve thousands of happy customers across the country, delivering the same exceptional quality that earned us our reputation decades ago.',
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur vitae risus ac sapien efficitur volutpat non a magna.',
           style: GoogleFonts.poppins(
             fontSize: isMobile ? 16 : 18,
             color: textColor,
@@ -632,38 +570,6 @@ class _AboutUsPageState extends State<AboutUsPage> {
     ).animate().fadeIn(delay: 900.ms);
   }
 
-  // Widget _buildPremiumStatsSection(bool isMobile) {
-  //   return Container(
-  //     padding: EdgeInsets.symmetric(vertical: isMobile ? 50 : 70),
-  //     decoration: BoxDecoration(
-  //       gradient: LinearGradient(
-  //         begin: Alignment.topLeft,
-  //         end: Alignment.bottomRight,
-  //         colors: [darkColor, primaryColor],
-  //       ),
-  //     ),
-  //     child: isMobile
-  //         ? Row(
-  //       crossAxisAlignment: CrossAxisAlignment.center,
-  //       children: [
-  //         _buildPremiumStatItem('2023', '   Founded In', isMobile),
-  //         const SizedBox(height: 30),
-  //         _buildPremiumStatItem('500+', '   Bookings Handled', isMobile),
-  //         const SizedBox(height: 30),
-  //         _buildPremiumStatItem('100+', '   Satisfied Users', isMobile),
-  //       ],
-  //     )
-  //         : Row(
-  //       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-  //       children: [
-  //         _buildPremiumStatItem('2023', 'Founded In', isMobile),
-  //         _buildPremiumStatItem('500+', 'Bookings Handled', isMobile),
-  //         _buildPremiumStatItem('100+', 'Satisfied Users', isMobile),
-  //       ],
-  //     ),
-  //   ).animate().fadeIn(delay: 400.ms);
-  // }
-
   Widget _buildPremiumStatItem(String value, String label, bool isMobile) {
     return Column(
       children: [
@@ -706,7 +612,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
             : 120,
         vertical: isMobile ? 60 : 80,
       ),
-      color: backgroundColor,
+      color: Colors.black.withOpacity(0.05),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -721,9 +627,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
               ),
             ),
           ),
-
           const SizedBox(height: 16),
-
           Center(
             child: Text(
               'Our Unmatched Advantages',
@@ -735,9 +639,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
               ),
             ),
           ),
-
           const SizedBox(height: 24),
-
           Center(
             child: SizedBox(
               width: isMobile ? double.infinity : 600,
@@ -752,9 +654,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
               ),
             ),
           ),
-
           SizedBox(height: isMobile ? 40 : 60),
-
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -834,9 +734,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
                     ),
                     child: Icon(icon, size: 30, color: Colors.white),
                   ),
-
                   const SizedBox(height: 30),
-
                   Text(
                     title,
                     style: GoogleFonts.poppins(
@@ -845,9 +743,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
                       color: Colors.white,
                     ),
                   ),
-
                   const SizedBox(height: 12),
-
                   Text(
                     desc,
                     style: GoogleFonts.poppins(
@@ -889,9 +785,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
               ),
             ),
           ),
-
           const SizedBox(height: 16),
-
           Center(
             child: Text(
               'Meet The Experts Behind Our Success',
@@ -903,9 +797,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
               ),
             ),
           ),
-
           const SizedBox(height: 24),
-
           Center(
             child: SizedBox(
               width: isMobile ? double.infinity : 600,
@@ -920,9 +812,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
               ),
             ),
           ),
-
           SizedBox(height: isMobile ? 40 : 60),
-
           isMobile
               ? Column(
                   children: _teamMembers
@@ -1144,9 +1034,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 16),
-
                 Center(
                   child: Text(
                     'What Our Customers Say',
@@ -1158,14 +1046,12 @@ class _AboutUsPageState extends State<AboutUsPage> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 24),
-
                 Center(
                   child: SizedBox(
                     width: isMobile ? double.infinity : 600,
                     child: Text(
-                      'Don\'t just take our word for it - hear from our valued customers about their experiences with Nawab Rice Trader.',
+                      'Don\'t just take our word for it - hear from our valued customers about their experiences.',
                       style: GoogleFonts.poppins(
                         fontSize: isMobile ? 16 : 18,
                         color: Colors.white.withOpacity(0.9),
@@ -1178,9 +1064,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
               ],
             ),
           ),
-
           SizedBox(height: isMobile ? 40 : 60),
-
           SizedBox(
             height: isMobile ? 400 : 300,
             child: ListView.builder(
@@ -1307,9 +1191,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
                         color: darkColor,
                       ),
                     ),
-
                     const SizedBox(height: 4),
-
                     Text(
                       role,
                       style: GoogleFonts.poppins(
@@ -1351,9 +1233,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
               ),
             ),
           ),
-
           const SizedBox(height: 16),
-
           Center(
             child: Text(
               'We\'d Love to Hear From You',
@@ -1365,9 +1245,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
               ),
             ),
           ),
-
           const SizedBox(height: 24),
-
           Center(
             child: SizedBox(
               width: isMobile ? double.infinity : 600,
@@ -1382,9 +1260,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
               ),
             ),
           ),
-
           SizedBox(height: isMobile ? 40 : 60),
-
           isMobile
               ? Column(
                   children: [
@@ -1430,77 +1306,67 @@ class _AboutUsPageState extends State<AboutUsPage> {
               color: darkColor,
             ),
           ),
-
           const SizedBox(height: 30),
-
           TextField(
+            controller: _contactNameController,
             decoration: InputDecoration(
               labelText: 'Your Name',
               labelStyle: GoogleFonts.poppins(color: lightTextColor),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: primaryColor),
               ),
             ),
           ),
-
           const SizedBox(height: 20),
-
           TextField(
+            controller: _contactEmailController,
             decoration: InputDecoration(
               labelText: 'Email Address',
               labelStyle: GoogleFonts.poppins(color: lightTextColor),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: primaryColor),
               ),
             ),
           ),
-
           const SizedBox(height: 20),
-
           TextField(
+            controller: _contactPhoneController,
+            decoration: InputDecoration(
+              labelText: 'Phone (optional)',
+              labelStyle: GoogleFonts.poppins(color: lightTextColor),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _contactSubjectController,
+            decoration: InputDecoration(
+              labelText: 'Subject',
+              labelStyle: GoogleFonts.poppins(color: lightTextColor),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _contactMessageController,
             maxLines: 4,
             decoration: InputDecoration(
               labelText: 'Your Message',
               labelStyle: GoogleFonts.poppins(color: lightTextColor),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: primaryColor),
               ),
             ),
           ),
-
           const SizedBox(height: 30),
-
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: _isSendingContact ? null : _submitContactForm,
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryColor,
                 foregroundColor: Colors.white,
@@ -1510,13 +1376,15 @@ class _AboutUsPageState extends State<AboutUsPage> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 elevation: 5,
               ),
-              child: Text(
-                'Send Message',
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              child: _isSendingContact
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : Text(
+                      'Send Message',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
             ),
           ),
         ],
@@ -1524,71 +1392,91 @@ class _AboutUsPageState extends State<AboutUsPage> {
     );
   }
 
+  Future<void> _submitContactForm() async {
+    if (_contactNameController.text.trim().isEmpty ||
+        _contactEmailController.text.trim().isEmpty ||
+        _contactSubjectController.text.trim().isEmpty ||
+        _contactMessageController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all required fields')),
+      );
+      return;
+    }
+    setState(() => _isSendingContact = true);
+    try {
+      final contact = ContactModel(
+        name: _contactNameController.text.trim(),
+        email: _contactEmailController.text.trim(),
+        phone: _contactPhoneController.text.trim(),
+        subject: _contactSubjectController.text.trim(),
+        message: _contactMessageController.text.trim(),
+      );
+      await ContactService().addContact(contact);
+      _contactNameController.clear();
+      _contactEmailController.clear();
+      _contactPhoneController.clear();
+      _contactSubjectController.clear();
+      _contactMessageController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Message sent! We will contact you soon.'),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to send message: $e')));
+    }
+    setState(() => _isSendingContact = false);
+  }
+
   Widget _buildPremiumContactInfo(bool isMobile) {
+    final details = _contactDetails ?? {};
     return Column(
       children: [
-        _buildPremiumContactItem(
-          icon: Icons.location_on_rounded,
-          title: 'Our Location',
-          subtitle: 'R-40 Sector-2,  \Near MD Mart, Baba More,North Karachi',
-          onTap: () => _launchUrl(
-            'https://www.google.com/maps/search/?api=1&query=Nawab+Rice+Trader',
+        if ((details['address'] ?? '').toString().isNotEmpty)
+          _buildPremiumContactItem(
+            icon: Icons.location_on_rounded,
+            title: 'Our Location',
+            subtitle: details['address'],
+            onTap: () => _launchUrl(
+              'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(details['address'])}',
+            ),
           ),
-        ),
-
-        const SizedBox(height: 20),
-
-        _buildPremiumContactItem(
-          icon: Icons.phone_rounded,
-          title: 'Phone Number',
-          subtitle: '0312 2493 657\n0315 8719 506 (Support)',
-          onTap: () => _launchUrl('tel:03122493657'),
-        ),
-
-        const SizedBox(height: 20),
-
-        _buildPremiumContactItem(
-          icon: Icons.email_rounded,
-          title: 'Email Address',
-          subtitle: 'contact@nawabricetrader.com\nsupport@nawabricetrader.com',
-          onTap: () => _launchUrl('mailto:contact@nawabricetrader.com'),
-        ),
-
+        if ((details['phone'] ?? '').toString().isNotEmpty)
+          _buildPremiumContactItem(
+            icon: Icons.phone_rounded,
+            title: 'Phone Number',
+            subtitle: details['phone'],
+            onTap: () => _launchUrl('tel:${details['phone']}'),
+          ),
+        if ((details['email'] ?? '').toString().isNotEmpty)
+          _buildPremiumContactItem(
+            icon: Icons.email_rounded,
+            title: 'Email Address',
+            subtitle: details['email'],
+            onTap: () => _launchUrl('mailto:${details['email']}'),
+          ),
+        // ...business hours, etc.
         const SizedBox(height: 30),
-
-        Text(
-          'Business Hours',
-          style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: darkColor,
-          ),
-        ),
-
-        const SizedBox(height: 10),
-
-        Text(
-          'Monday - Thursday & Saturday: 11:00 AM - 11:00 PM\Friday: 11:00 AM - 2:00 PM\nSunday: Closed',
-          style: GoogleFonts.poppins(
-            fontSize: 15,
-            color: lightTextColor,
-            height: 1.8,
-          ),
-          textAlign: TextAlign.center,
-        ),
-
-        const SizedBox(height: 30),
-
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildContactSocialIcon(FontAwesomeIcons.facebookF),
-            const SizedBox(width: 15),
-            _buildContactSocialIcon(FontAwesomeIcons.instagram),
-            const SizedBox(width: 15),
-            _buildContactSocialIcon(FontAwesomeIcons.twitter),
-            const SizedBox(width: 15),
-            _buildContactSocialIcon(FontAwesomeIcons.whatsapp),
+            if ((details['facebook'] ?? '').toString().isNotEmpty)
+              _buildContactSocialIcon(
+                FontAwesomeIcons.facebookF,
+                details['facebook'],
+              ),
+            if ((details['instagram'] ?? '').toString().isNotEmpty)
+              _buildContactSocialIcon(
+                FontAwesomeIcons.instagram,
+                details['instagram'],
+              ),
+            if ((details['whatsapp'] ?? '').toString().isNotEmpty)
+              _buildContactSocialIcon(
+                FontAwesomeIcons.whatsapp,
+                'https://wa.me/${details['whatsapp']}',
+              ),
           ],
         ),
       ],
@@ -1628,9 +1516,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
               ),
               child: Icon(icon, size: 24, color: primaryColor),
             ),
-
             const SizedBox(width: 16),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1642,9 +1528,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-
                   const SizedBox(height: 4),
-
                   Text(
                     subtitle,
                     style: GoogleFonts.poppins(
@@ -1662,9 +1546,9 @@ class _AboutUsPageState extends State<AboutUsPage> {
     );
   }
 
-  Widget _buildContactSocialIcon(IconData icon) {
+  Widget _buildContactSocialIcon(IconData icon, String url) {
     return InkWell(
-      onTap: () {},
+      onTap: () => _launchUrl(url),
       borderRadius: BorderRadius.circular(30),
       child: Container(
         width: 50,
@@ -1710,7 +1594,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
                 ),
                 child: Center(
                   child: Text(
-                    'Nawab Rice',
+                    'Flutter Ecommerce',
                     style: GoogleFonts.playfairDisplay(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -1772,7 +1656,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
 
           // Copyright
           Text(
-            '© 2023 Nawab Rice Trader. All Rights Reserved.',
+            '© 2023 Flutter Ecommerce Trader. All Rights Reserved.',
             style: GoogleFonts.poppins(
               fontSize: 12,
               color: Colors.white.withOpacity(0.6),
@@ -1795,14 +1679,12 @@ class _AboutUsPageState extends State<AboutUsPage> {
                   ),
                 ),
               ),
-
               Container(
                 width: 1,
                 height: 12,
                 color: Colors.white.withOpacity(0.4),
                 margin: const EdgeInsets.symmetric(horizontal: 10),
               ),
-
               TextButton(
                 onPressed: () {},
                 child: Text(
@@ -1813,14 +1695,12 @@ class _AboutUsPageState extends State<AboutUsPage> {
                   ),
                 ),
               ),
-
               Container(
                 width: 1,
                 height: 12,
                 color: Colors.white.withOpacity(0.4),
                 margin: const EdgeInsets.symmetric(horizontal: 10),
               ),
-
               TextButton(
                 onPressed: () {},
                 child: Text(

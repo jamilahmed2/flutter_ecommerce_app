@@ -7,6 +7,7 @@ import 'package:flutter_ecommerce_app/AdminPage/Models/Product.dart';
 import 'package:flutter_ecommerce_app/AdminPage/Models/Category.dart';
 import 'package:flutter_ecommerce_app/AdminPage/Models/Brand.dart';
 import 'package:flutter_ecommerce_app/services/cloudinary_service.dart';
+import 'package:flutter_ecommerce_app/services/notification_service.dart';
 
 class ProductManagement extends StatefulWidget {
   const ProductManagement({Key? key}) : super(key: key);
@@ -128,14 +129,19 @@ class _ProductManagementState extends State<ProductManagement> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Product Management'),
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
+        title: const Text(
+          'Product Management',
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Colors.black,
+        elevation: 1,
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
             onPressed: () => _navigateToProductForm(),
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add, color: Colors.white),
             tooltip: 'Add Product',
           ),
         ],
@@ -148,8 +154,12 @@ class _ProductManagementState extends State<ProductManagement> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _navigateToProductForm(),
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30),
+          side: const BorderSide(color: Colors.black, width: 1),
+        ),
         child: const Icon(Icons.add),
       ),
     );
@@ -158,19 +168,29 @@ class _ProductManagementState extends State<ProductManagement> {
   Widget _buildSearchAndFilters() {
     return Container(
       padding: const EdgeInsets.all(16.0),
-      color: Colors.grey[100],
+      color: Colors.white,
       child: Column(
         children: [
           TextField(
             controller: _searchController,
+            style: const TextStyle(color: Colors.black),
             decoration: InputDecoration(
               hintText: 'Search products...',
-              prefixIcon: const Icon(Icons.search),
+              hintStyle: const TextStyle(color: Colors.black54),
+              prefixIcon: const Icon(Icons.search, color: Colors.black54),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Colors.black54),
               ),
-              filled: true,
-              fillColor: Colors.white,
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Colors.black54),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Colors.black),
+              ),
+              filled: false,
             ),
             onChanged: (value) {
               setState(() {
@@ -184,23 +204,35 @@ class _ProductManagementState extends State<ProductManagement> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   value: _selectedCategory,
+                  style: const TextStyle(color: Colors.black),
                   decoration: InputDecoration(
                     labelText: 'Category',
+                    labelStyle: const TextStyle(color: Colors.black),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.black54),
                     ),
-                    filled: true,
-                    fillColor: Colors.white,
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.black54),
+                    ),
+                    filled: false,
                   ),
                   items: [
                     const DropdownMenuItem(
                       value: 'All',
-                      child: Text('All Categories'),
+                      child: Text(
+                        'All Categories',
+                        style: TextStyle(color: Colors.black),
+                      ),
                     ),
                     ..._categories.map((category) {
                       return DropdownMenuItem(
                         value: category.id,
-                        child: Text(category.name),
+                        child: Text(
+                          category.name,
+                          style: const TextStyle(color: Colors.black),
+                        ),
                       );
                     }),
                   ],
@@ -215,21 +247,48 @@ class _ProductManagementState extends State<ProductManagement> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   value: _sortBy,
+                  style: const TextStyle(color: Colors.black),
                   decoration: InputDecoration(
                     labelText: 'Sort By',
+                    labelStyle: const TextStyle(color: Colors.black),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.black54),
                     ),
-                    filled: true,
-                    fillColor: Colors.white,
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.black54),
+                    ),
+                    filled: false,
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'name', child: Text('Name')),
-                    DropdownMenuItem(value: 'price', child: Text('Price')),
-                    DropdownMenuItem(value: 'stock', child: Text('Stock')),
+                    DropdownMenuItem(
+                      value: 'name',
+                      child: Text(
+                        'Name',
+                        style: TextStyle(color: Colors.black),
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'price',
+                      child: Text(
+                        'Price',
+                        style: TextStyle(color: Colors.black),
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'stock',
+                      child: Text(
+                        'Stock',
+                        style: TextStyle(color: Colors.black),
+                      ),
+                    ),
                     DropdownMenuItem(
                       value: 'created',
-                      child: Text('Date Created'),
+                      child: Text(
+                        'Date Created',
+                        style: TextStyle(color: Colors.black),
+                      ),
                     ),
                   ],
                   onChanged: (value) {
@@ -255,7 +314,12 @@ class _ProductManagementState extends State<ProductManagement> {
       stream: FirebaseFirestore.instance.collection('products').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
+          return Center(
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.black),
+            ),
+          );
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -263,20 +327,20 @@ class _ProductManagementState extends State<ProductManagement> {
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.inventory_2, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text(
+                Icon(Icons.inventory_2, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                const Text(
                   'No products found',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                  style: TextStyle(fontSize: 18, color: Colors.black54),
                 ),
-                SizedBox(height: 8),
-                Text(
+                const SizedBox(height: 8),
+                const Text(
                   'Tap the + button to add your first product',
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(color: Colors.black54),
                 ),
               ],
             ),
@@ -331,7 +395,13 @@ class _ProductManagementState extends State<ProductManagement> {
 
   Widget _buildProductCard(Product product) {
     return Card(
+      color: Colors.white,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Colors.black12, width: 1),
+      ),
       child: ListTile(
         leading: ClipRRect(
           borderRadius: BorderRadius.circular(8),
@@ -345,27 +415,39 @@ class _ProductManagementState extends State<ProductManagement> {
                     return Container(
                       width: 60,
                       height: 60,
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.image_not_supported),
+                      color: Colors.grey[200],
+                      child: const Icon(
+                        Icons.image_not_supported,
+                        color: Colors.black45,
+                      ),
                     );
                   },
                 )
               : Container(
                   width: 60,
                   height: 60,
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.image),
+                  color: Colors.grey[200],
+                  child: const Icon(Icons.image, color: Colors.black45),
                 ),
         ),
         title: Text(
           product.name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('\$${product.price.toStringAsFixed(2)}'),
-            Text('Stock: ${product.stock}'),
+            Text(
+              'Rs ${product.price.toStringAsFixed(2)}',
+              style: const TextStyle(color: Colors.black87),
+            ),
+            Text(
+              'Stock: ${product.stock}',
+              style: const TextStyle(color: Colors.black87),
+            ),
             Row(
               children: [
                 Container(
@@ -374,12 +456,19 @@ class _ProductManagementState extends State<ProductManagement> {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: product.isActive ? Colors.green : Colors.red,
+                    color: product.isActive ? Colors.white : Colors.grey[200],
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: product.isActive ? Colors.black : Colors.grey,
+                      width: 1,
+                    ),
                   ),
                   child: Text(
                     product.isActive ? 'Active' : 'Inactive',
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                    style: TextStyle(
+                      color: product.isActive ? Colors.black : Colors.black54,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
                 if (product.isFeatured) ...[
@@ -390,12 +479,13 @@ class _ProductManagementState extends State<ProductManagement> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.orange,
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.black, width: 1),
                     ),
                     child: const Text(
                       'Featured',
-                      style: TextStyle(color: Colors.white, fontSize: 12),
+                      style: TextStyle(color: Colors.black, fontSize: 12),
                     ),
                   ),
                 ],
@@ -404,6 +494,8 @@ class _ProductManagementState extends State<ProductManagement> {
           ],
         ),
         trailing: PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert, color: Colors.black54),
+          color: Colors.white,
           onSelected: (value) {
             switch (value) {
               case 'edit':
@@ -415,19 +507,25 @@ class _ProductManagementState extends State<ProductManagement> {
             }
           },
           itemBuilder: (context) => [
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'edit',
               child: ListTile(
-                leading: Icon(Icons.edit),
-                title: Text('Edit'),
+                leading: const Icon(Icons.edit, color: Colors.black),
+                title: const Text(
+                  'Edit',
+                  style: TextStyle(color: Colors.black),
+                ),
                 contentPadding: EdgeInsets.zero,
               ),
             ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'delete',
               child: ListTile(
-                leading: Icon(Icons.delete, color: Colors.red),
-                title: Text('Delete', style: TextStyle(color: Colors.red)),
+                leading: const Icon(Icons.delete, color: Colors.black),
+                title: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.black),
+                ),
                 contentPadding: EdgeInsets.zero,
               ),
             ),
@@ -655,8 +753,16 @@ class _ProductFormPageState extends State<ProductFormPage> {
                   ? 'Product created successfully'
                   : 'Product updated successfully',
             ),
-            backgroundColor: Colors.green,
           ),
+        );
+      }
+
+      if (widget.product == null) {
+        await NotificationService().addGlobalNotification(
+          type: 'info',
+          title: 'New Product Added',
+          message: 'Check out our new ${_nameController.text}',
+          productId: product.id,
         );
       }
     } catch (e) {
@@ -677,10 +783,15 @@ class _ProductFormPageState extends State<ProductFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(widget.product == null ? 'Add Product' : 'Edit Product'),
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
+        title: Text(
+          widget.product == null ? 'Add Product' : 'Edit Product',
+          style: const TextStyle(color: Colors.black),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 1,
+        iconTheme: const IconThemeData(color: Colors.black),
         actions: [
           if (_isLoading)
             const Padding(
@@ -688,10 +799,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
               child: SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
+                child: CircularProgressIndicator(strokeWidth: 2),
               ),
             ),
         ],
@@ -725,6 +833,12 @@ class _ProductFormPageState extends State<ProductFormPage> {
 
   Widget _buildImageSection() {
     return Card(
+      color: Colors.white,
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Colors.black12, width: 1),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -732,7 +846,9 @@ class _ProductFormPageState extends State<ProductFormPage> {
           children: [
             Text(
               'Product Images',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(color: Colors.black),
             ),
             const SizedBox(height: 16),
             if (_existingImageUrls.isNotEmpty || _selectedImages.isNotEmpty)
@@ -765,14 +881,34 @@ class _ProductFormPageState extends State<ProductFormPage> {
               children: [
                 ElevatedButton.icon(
                   onPressed: _pickImages,
-                  icon: const Icon(Icons.photo_library),
-                  label: const Text('Gallery'),
+                  icon: const Icon(Icons.photo_library, color: Colors.black),
+                  label: const Text(
+                    'Gallery',
+                    style: TextStyle(color: Colors.black),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: const BorderSide(color: Colors.black54, width: 1),
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton.icon(
                   onPressed: _takePhoto,
-                  icon: const Icon(Icons.camera_alt),
-                  label: const Text('Camera'),
+                  icon: const Icon(Icons.camera_alt, color: Colors.black),
+                  label: const Text(
+                    'Camera',
+                    style: TextStyle(color: Colors.black),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: const BorderSide(color: Colors.black54, width: 1),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -804,8 +940,8 @@ class _ProductFormPageState extends State<ProductFormPage> {
                       return Container(
                         width: 100,
                         height: 100,
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.error),
+                        color: Colors.grey[200],
+                        child: const Icon(Icons.error, color: Colors.black45),
                       );
                     },
                   )
@@ -823,11 +959,12 @@ class _ProductFormPageState extends State<ProductFormPage> {
               onTap: () => _removeImage(index, isExisting: isExisting),
               child: Container(
                 padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(
-                  color: Colors.red,
+                decoration: BoxDecoration(
+                  color: Colors.white,
                   shape: BoxShape.circle,
+                  border: Border.all(color: Colors.black, width: 1),
                 ),
-                child: const Icon(Icons.close, color: Colors.white, size: 16),
+                child: const Icon(Icons.close, color: Colors.black, size: 16),
               ),
             ),
           ),
@@ -838,6 +975,12 @@ class _ProductFormPageState extends State<ProductFormPage> {
 
   Widget _buildBasicInfoSection() {
     return Card(
+      color: Colors.white,
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Colors.black12, width: 1),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -845,14 +988,29 @@ class _ProductFormPageState extends State<ProductFormPage> {
           children: [
             Text(
               'Basic Information',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(color: Colors.black),
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Colors.black),
+              decoration: InputDecoration(
                 labelText: 'Product Name',
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: Colors.black),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black54),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black54),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black),
+                ),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
@@ -864,23 +1022,52 @@ class _ProductFormPageState extends State<ProductFormPage> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _descriptionController,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Colors.black),
+              decoration: InputDecoration(
                 labelText: 'Description',
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: Colors.black),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black54),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black54),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black),
+                ),
               ),
               maxLines: 3,
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               value: _selectedCategoryId.isEmpty ? null : _selectedCategoryId,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Colors.black),
+              decoration: InputDecoration(
                 labelText: 'Category',
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: Colors.black),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black54),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black54),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black),
+                ),
               ),
               items: _categories.map((category) {
                 return DropdownMenuItem(
                   value: category.id,
-                  child: Text(category.name),
+                  child: Text(
+                    category.name,
+                    style: const TextStyle(color: Colors.black),
+                  ),
                 );
               }).toList(),
               onChanged: (value) {
@@ -898,14 +1085,30 @@ class _ProductFormPageState extends State<ProductFormPage> {
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               value: _selectedBrandId.isEmpty ? null : _selectedBrandId,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Colors.black),
+              decoration: InputDecoration(
                 labelText: 'Brand',
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: Colors.black),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black54),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black54),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black),
+                ),
               ),
               items: _brands.map((brand) {
                 return DropdownMenuItem(
                   value: brand.id,
-                  child: Text(brand.name),
+                  child: Text(
+                    brand.name,
+                    style: const TextStyle(color: Colors.black),
+                  ),
                 );
               }).toList(),
               onChanged: (value) {
@@ -928,19 +1131,44 @@ class _ProductFormPageState extends State<ProductFormPage> {
 
   Widget _buildPricingSection() {
     return Card(
+      color: Colors.white,
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Colors.black12, width: 1),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Pricing', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Pricing',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(color: Colors.black),
+            ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _priceController,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Colors.black),
+              decoration: InputDecoration(
                 labelText: 'Price',
-                border: OutlineInputBorder(),
-                prefixText: '\$',
+                labelStyle: const TextStyle(color: Colors.black),
+                prefixText: 'Rs',
+                prefixStyle: const TextStyle(color: Colors.black),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black54),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black54),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black),
+                ),
               ),
               keyboardType: TextInputType.number,
               validator: (value) {
@@ -957,10 +1185,24 @@ class _ProductFormPageState extends State<ProductFormPage> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _discountPriceController,
-              decoration: const InputDecoration(
-                labelText: 'Discount Price (Optional)',
-                border: OutlineInputBorder(),
-                prefixText: '\$',
+              style: const TextStyle(color: Colors.black),
+              decoration: InputDecoration(
+                labelText: 'Discount Price',
+                labelStyle: const TextStyle(color: Colors.black),
+                prefixText: 'Rs',
+                prefixStyle: const TextStyle(color: Colors.black),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black54),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black54),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black),
+                ),
               ),
               keyboardType: TextInputType.number,
               validator: (value) {
@@ -985,18 +1227,42 @@ class _ProductFormPageState extends State<ProductFormPage> {
 
   Widget _buildInventorySection() {
     return Card(
+      color: Colors.white,
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Colors.black12, width: 1),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Inventory', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Inventory',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(color: Colors.black),
+            ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _stockController,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Colors.black),
+              decoration: InputDecoration(
                 labelText: 'Stock Quantity',
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: Colors.black),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black54),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black54),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black),
+                ),
               ),
               keyboardType: TextInputType.number,
               validator: (value) {
@@ -1013,17 +1279,43 @@ class _ProductFormPageState extends State<ProductFormPage> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _unitController,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Colors.black),
+              decoration: InputDecoration(
                 labelText: 'Unit (e.g., kg, piece, pack)',
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: Colors.black),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black54),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black54),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black),
+                ),
               ),
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _weightController,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Colors.black),
+              decoration: InputDecoration(
                 labelText: 'Weight (Optional, in kg)',
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: Colors.black),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black54),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black54),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black),
+                ),
               ),
               keyboardType: TextInputType.number,
               validator: (value) {
@@ -1044,6 +1336,12 @@ class _ProductFormPageState extends State<ProductFormPage> {
 
   Widget _buildAdditionalInfoSection() {
     return Card(
+      color: Colors.white,
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Colors.black12, width: 1),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -1051,14 +1349,29 @@ class _ProductFormPageState extends State<ProductFormPage> {
           children: [
             Text(
               'Additional Information',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(color: Colors.black),
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _skuController,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Colors.black),
+              decoration: InputDecoration(
                 labelText: 'SKU (Stock Keeping Unit)',
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: Colors.black),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black54),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black54),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black),
+                ),
               ),
             ),
           ],
@@ -1069,19 +1382,38 @@ class _ProductFormPageState extends State<ProductFormPage> {
 
   Widget _buildSettingsSection() {
     return Card(
+      color: Colors.white,
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Colors.black12, width: 1),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Settings', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Settings',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(color: Colors.black),
+            ),
             const SizedBox(height: 16),
             SwitchListTile(
-              title: const Text('Active'),
+              title: const Text(
+                'Active',
+                style: TextStyle(color: Colors.black),
+              ),
               subtitle: const Text(
                 'If inactive, the product won\'t be visible to customers',
+                style: TextStyle(color: Colors.black87),
               ),
               value: _isActive,
+              activeColor: Colors.black,
+              activeTrackColor: Colors.grey,
+              inactiveThumbColor: Colors.grey[400],
+              inactiveTrackColor: Colors.grey[300],
               onChanged: (value) {
                 setState(() {
                   _isActive = value;
@@ -1089,11 +1421,19 @@ class _ProductFormPageState extends State<ProductFormPage> {
               },
             ),
             SwitchListTile(
-              title: const Text('Featured'),
+              title: const Text(
+                'Featured',
+                style: TextStyle(color: Colors.black),
+              ),
               subtitle: const Text(
                 'Featured products may be highlighted on the homepage',
+                style: TextStyle(color: Colors.black87),
               ),
               value: _isFeatured,
+              activeColor: Colors.black,
+              activeTrackColor: Colors.grey,
+              inactiveThumbColor: Colors.grey[400],
+              inactiveTrackColor: Colors.grey[300],
               onChanged: (value) {
                 setState(() {
                   _isFeatured = value;
@@ -1113,11 +1453,17 @@ class _ProductFormPageState extends State<ProductFormPage> {
         onPressed: _isLoading ? null : _saveProduct,
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
-          backgroundColor: Theme.of(context).primaryColor,
-          foregroundColor: Colors.white,
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
           textStyle: const TextStyle(fontSize: 18),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: const BorderSide(color: Colors.black, width: 1),
+          ),
         ),
-        child: const Text('Save Product'),
+        child: _isLoading
+            ? const CircularProgressIndicator()
+            : const Text('Save Product'),
       ),
     );
   }

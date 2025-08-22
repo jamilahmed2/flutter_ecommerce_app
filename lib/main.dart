@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import "package:cloud_firestore/cloud_firestore.dart";
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_ecommerce_app/AdminPage/Dashboard/AdminDashboard.dart';
 import 'package:flutter_ecommerce_app/UserPage/Pages/Auth/LoginPage.dart';
 import 'package:flutter_ecommerce_app/UserPage/Pages/Auth/RegisterPage.dart';
 import 'package:flutter_ecommerce_app/UserPage/Pages/Auth/VerifyEmailPage.dart';
 import 'package:flutter_ecommerce_app/UserPage/Pages/HomePage.dart';
 import 'package:flutter_ecommerce_app/UserPage/Pages/ProductsPage.dart';
+import 'package:flutter_ecommerce_app/services/notification_service.dart';
 import 'firebase_options.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
@@ -15,7 +16,9 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   usePathUrlStrategy();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   // Configure Firebase settings
   await FirebaseAuth.instance.setLanguageCode('en');
@@ -23,7 +26,7 @@ void main() async {
     persistenceEnabled: true,
     cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
   );
-
+await NotificationService().initialize();
   runApp(const MyApp());
 }
 
@@ -35,11 +38,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Nawab Rice Trader',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: Colors.black,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.black),
-        fontFamily: GoogleFonts.poppins().fontFamily,
-      ),
+      themeMode: ThemeMode.system, // Automatically switch between light and dark mode
       home: const AuthWrapper(),
       // Named routes for better navigation management
       routes: {
@@ -48,7 +47,7 @@ class MyApp extends StatelessWidget {
         '/products': (context) => const ProductsPage(),
         '/admin': (context) => const AdminRouteGuard(),
         '/verify': (context) => const VerifyEmailPage(),
-        '/register': (context) => const RegisterRouteGuard(),
+        '/register': (context) => const RegisterRouteGuard()
       },
     );
   }
@@ -66,11 +65,11 @@ class AdminRouteGuard extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const LoadingScreen();
         }
-
+        
         if (snapshot.hasData && snapshot.data == true) {
           return const AdminDashboard();
         }
-
+        
         // Redirect to home if not admin
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.pushReplacementNamed(context, '/home');
@@ -99,11 +98,11 @@ class LoginRouteGuard extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const LoadingScreen();
         }
-
+        
         if (snapshot.hasData && snapshot.data == true) {
           return const LoginPage();
         }
-
+        
         // Redirect to home if user is logged in
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.pushReplacementNamed(context, '/home');
@@ -132,11 +131,11 @@ class RegisterRouteGuard extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const LoadingScreen();
         }
-
+        
         if (snapshot.hasData && snapshot.data == true) {
           return const RegisterPage();
         }
-
+        
         // Redirect to home if user is logged in
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.pushReplacementNamed(context, '/home');
@@ -163,10 +162,10 @@ class AuthWrapper extends StatefulWidget {
 class _AuthWrapperState extends State<AuthWrapper> {
   // Cache for admin status to avoid repeated Firestore calls
   final Map<String, bool> _adminCache = {};
-
+  
   // Keep track of current user to detect user changes
   String? _currentUserId;
-
+  
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
@@ -178,7 +177,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         }
 
         final user = snapshot.data;
-
+        
         // If user changed (including logout), clear cache
         if (_currentUserId != user?.uid) {
           _adminCache.clear();
@@ -189,7 +188,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         if (user == null) {
           return const HomePage();
         }
-
+        
         // Check if email is verified first
         if (!user.emailVerified) {
           return const VerifyEmailPage();
@@ -226,7 +225,10 @@ class LoadingScreen extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               'Loading...',
-              style: GoogleFonts.poppins(color: Colors.black54, fontSize: 16),
+              style: GoogleFonts.poppins(
+                color: Colors.black54,
+                fontSize: 16,
+              ),
             ),
           ],
         ),
@@ -238,24 +240,24 @@ class LoadingScreen extends StatelessWidget {
 // Optional: Create an AuthService for centralized auth management
 class AuthService {
   static final Map<String, bool> _adminCache = {};
-
+  
   // Clear cache when user logs out
   static void clearCache() {
     _adminCache.clear();
   }
-
+  
   // Get admin status with caching
   static Future<bool> isAdmin(String userId) async {
     if (_adminCache.containsKey(userId)) {
       return _adminCache[userId]!;
     }
-
+    
     try {
       final doc = await FirebaseFirestore.instance
           .collection('admins')
           .doc(userId)
           .get();
-
+      
       final isAdmin = doc.exists;
       _adminCache[userId] = isAdmin;
       return isAdmin;
@@ -265,18 +267,19 @@ class AuthService {
       return false;
     }
   }
-
+  
   // Logout with proper cleanup
   static Future<void> logout() async {
     try {
       // Clear Firestore cache
       await FirebaseFirestore.instance.clearPersistence();
-
+      
       // Clear our admin cache
       clearCache();
-
+      
       // Sign out from Firebase Auth
       await FirebaseAuth.instance.signOut();
+      
     } catch (e) {
       // Even if cache clearing fails, ensure user is signed out
       clearCache();
